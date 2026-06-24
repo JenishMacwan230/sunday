@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday - AI Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Chat Messages -->
+        <div class="messages-section" id="messagesSection">
+            <div class="messages" id="messagesContainer">
+                <div class="message ai-message">
+                    <div class="message-text">Hello! I'm your AI Assistant. How can I help you?</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Central Microphone Button -->
+        <div class="mic-section">
+            <div class="sun-logo">
+                <svg class="sun-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Sun rays -->
+                    <g stroke="currentColor" stroke-width="4" stroke-linecap="round">
+                        <line x1="50" y1="5" x2="50" y2="15"/>
+                        <line x1="50" y1="85" x2="50" y2="95"/>
+                        <line x1="5" y1="50" x2="15" y2="50"/>
+                        <line x1="85" y1="50" x2="95" y2="50"/>
+                        <line x1="16" y1="16" x2="24" y2="24"/>
+                        <line x1="76" y1="76" x2="84" y2="84"/>
+                        <line x1="84" y1="16" x2="76" y2="24"/>
+                        <line x1="24" y1="76" x2="16" y2="84"/>
+                    </g>
+                    <!-- Sun circle -->
+                    <circle cx="50" cy="50" r="25" fill="currentColor" opacity="0.9"/>
+                </svg>
+            </div>
+            <button class="central-mic-btn" id="micBtn" title="Click to speak">
+                <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1C6.48 1 2 5.48 2 11v8h20v-8c0-5.52-4.48-10-10-10zm0 17c-3.86 0-7-3.14-7-7h14c0 3.86-3.14 7-7 7zm3.5-9c0 1.93-1.57 3.5-3.5 3.5S8.5 10.93 8.5 9 10.07 5.5 12 5.5s3.5 1.57 3.5 3.5z"/>
+                </svg>
+            </button>
+            <div class="voice-status" id="voiceStatus">Ready to listen</div>
+        </div>
+
+        <!-- Waveform Animation -->
+        <div class="waveform" id="waveform">
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+            <span class="wave-bar"></span>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
