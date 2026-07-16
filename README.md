@@ -1,194 +1,135 @@
-# SUNDAY — Local Voice-Controlled Desktop Assistant
+# SUNDAY
 
-SUNDAY listens for its name, turns what you say into a structured command
-using a **local** LLM (no cloud, no API key), and then performs the action
-on your Windows laptop — opening apps, navigating File Explorer, dictating
-text, or jumping straight to a website in Chrome.
+SUNDAY is a Windows desktop voice assistant built with Python, Eel, and a browser-based UI. It listens for a wake word or manual mic input, understands spoken commands, and can open apps, open websites, or play YouTube searches.
 
-This README is written assuming you're newer to Python — every step says
-not just *what* to run, but *why*.
+## What it can do
 
----
+- Listen for commands from the app window
+- Listen for the wake word and then wait for the next command
+- Open installed apps from saved paths
+- Open websites from saved URLs
+- Play a YouTube search query
+- Mute, pause, and show a short cooldown after each command
+- Store custom app and website shortcuts in SQLite
 
-## 1. How the project is organized
+## Screenshots
 
-```
+Put your images in `client/assets/image/` and update the filenames below to match your files.
+
+![SUNDAY home screen](client/assets/image/home-screen.png)
+![Wake word mode](client/assets/image/wake-word-mode.png)
+![App paths manager](client/assets/image/app-paths.png)
+
+## Project structure
+
+```text
 SUNDAY/
-├── main.py                  <- run this file to start SUNDAY
-├── config.py                <- every adjustable setting lives here
-├── requirements.txt         <- list of Python packages to install
-├── memory.db                <- auto-created on first run (your learned shortcuts)
-│
-├── core/                    <- SUNDAY's senses + brain
-│   ├── audio_listener.py    <- background loop listening for "sunday"
-│   ├── speech_to_text.py    <- microphone recording + Whisper transcription
-│   ├── intent_parser.py     <- talks to the local LLM (Ollama)
-│   ├── text_to_speech.py    <- speaks confirmations back to you
-│   └── memory.py            <- remembers your frequent shortcuts (SQLite)
-│
-├── actions/                 <- SUNDAY's hands — one file per capability
-│   ├── action_executor.py   <- routes the LLM's decision to the right file below
-│   ├── app_launcher.py      <- opens applications
-│   ├── apps_config.py       <- editable list of app name -> path
-│   ├── browser_control.py   <- opens Chrome / runs searches
-│   ├── file_explorer.py     <- step-by-step Explorer navigation
-│   └── typing_tool.py       <- types dictated text
-│
-├── ui/
-│   └── floating_icon.py     <- the floating mic icon + system tray icon
-│
-└── assets/
-    └── mic_icon.png         <- icon used by the floating UI
+├── main.py
+├── requirements.txt
+├── README.md
+├── sunday.db
+├── server/
+│   ├── command.py
+│   ├── feature.py
+│   └── db.py
+└── client/
+    ├── index.html
+    ├── app.js
+    ├── controller.js
+    ├── styles.css
+    └── assets/
+        └── image/
 ```
 
-**Why split into so many small files?** Each file does exactly one job. If
-"opening apps" misbehaves, you know to look in `app_launcher.py` and
-nowhere else. This also means you can extend one feature (say, add a new
-action type) without touching code that has nothing to do with it.
+## How it works
 
-A quick Python note for each file: every `.py` file is a **module**, and a
-folder containing an `__init__.py` file is a **package** — that's why
-`core/`, `actions/`, and `ui/` each have one. It just tells Python "treat
-this folder as a place I can import code from."
+`main.py` starts the app with Eel and loads the UI from `client/index.html`. The browser window runs as a small desktop app.
 
----
+`server/command.py` handles speech recognition, text-to-speech, mute/pause state, wake-word detection, and the command cooldown.
 
-## 2. Prerequisites
+`server/feature.py` handles the actual actions, such as opening apps from the SQLite database, opening web links, or sending a YouTube search to the browser.
 
-| Requirement | Notes |
-|---|---|
-| Windows 10/11 | The app/file/browser control code is Windows-specific |
-| Python 3.10+ | [python.org](https://python.org) — tick "Add Python to PATH" during install |
-| Google Chrome | Installed at the default path, or update `CHROME_PATH` in `config.py` |
-| A working microphone | Built-in laptop mic is fine |
-| ~8 GB free RAM | For running the local LLM comfortably |
-| [Ollama](https://ollama.com) | The local LLM runtime — separate install, see below |
+`client/app.js` controls the interface state, the mic button, cooldown display, mute/pause buttons, and the app paths modal.
 
----
+## Requirements
 
-## 3. Installation
+- Windows 10 or Windows 11
+- Python 3.13 or compatible version for your environment
+- Google Chrome installed on the machine
+- A working microphone
 
-Open **PowerShell** or **Command Prompt** in the `SUNDAY` folder, then:
+## Setup
 
-```bash
-# 1. Create a virtual environment (an isolated space for this project's packages)
-python -m venv venv
-venv\Scripts\activate
+1. Open a terminal in the project folder.
+2. Activate your virtual environment if you are using one.
 
-# 2. Install all required Python packages
+```powershell
+envsunday\Scripts\activate
+```
+
+3. Install dependencies.
+
+```powershell
 pip install -r requirements.txt
 ```
 
-**What's a virtual environment?** Normally, packages you `pip install` go
-into your one global Python installation. A virtual environment (`venv`)
-creates a private copy just for this project, so SUNDAY's packages never
-conflict with anything else you have installed. You'll see `(venv)` appear
-in your terminal prompt once it's active — run `venv\Scripts\activate`
-again any time you reopen a terminal to work on this project.
+4. If you are using a fresh environment and any imports are missing, install the missing packages that your local setup requires.
 
-### Install Ollama and the LLM model
+## Run the app
 
-```bash
-# Download & install Ollama from https://ollama.com (Windows installer)
-
-# Then pull the model SUNDAY uses for understanding commands (~4-5 GB, one-time):
-ollama pull qwen2.5:7b-instruct
-
-# Confirm it works:
-ollama run qwen2.5:7b-instruct "Reply with the single word: ready"
-```
-
-Ollama runs as a background Windows service after installation — you don't
-need to keep a terminal open for it.
-
----
-
-## 4. Running SUNDAY
-
-```bash
-venv\Scripts\activate
+```powershell
 python main.py
 ```
 
-The first run will take a little longer — `faster-whisper` downloads its
-speech models the first time they're used, and caches them after that.
+The app opens as a small desktop window in Chrome app mode.
 
-You should see:
-```
-[SUNDAY] Starting up...
-[SUNDAY] Listening for the wake word 'sunday'...
-```
-...and a small blue mic icon should appear in the top-left of your screen.
+## Using SUNDAY
 
-**Try it:** say *"Sunday"*, wait for the "Listening" confirmation, then say
-*"open YouTube"*.
+- Use **Manual** mode to click the mic and speak a command right away.
+- Use **Wake Word** mode to keep listening for "Hey Sunday" first.
+- Use the **Mute** button to stop spoken responses.
+- Use the **Pause** button to temporarily block commands.
+- Use **App Paths** to save custom app paths or URLs.
 
-To trigger a command without speaking the wake word, just **click the
-floating icon** — it behaves identically.
+## Supported commands
 
----
+The assistant currently recognizes commands such as:
 
-## 5. Customizing SUNDAY
+- `open chrome`
+- `open notepad`
+- `open youtube`
+- `play lo-fi on youtube`
+- `open <saved app name>`
+- `open <saved website name>`
 
-| I want to... | Edit this file |
-|---|---|
-| Change the wake word | `config.py` → `WAKE_WORD` |
-| Add/change which apps SUNDAY can open | `actions/apps_config.py` |
-| Add a permanent shortcut (e.g. "netflix") | Edit the `defaults` dict in `core/memory.py`, or just say it a couple of times — SUNDAY learns it automatically |
-| Use a smaller/faster or larger/more-accurate LLM | `config.py` → `OLLAMA_MODEL` (must match a model you've `ollama pull`'d) |
-| Point to a different Chrome install | `config.py` → `CHROME_PATH` |
-| Turn off spoken confirmations | `config.py` → `VOICE_FEEDBACK_ENABLED = False` |
+## App paths database
 
----
+Saved shortcuts are stored in `sunday.db` in two tables:
 
-## 6. How a command actually flows through the code
+- `sys_command` for Windows apps and local paths
+- `web_command` for websites and URLs
 
-1. **`audio_listener.py`** records a short clip every couple of seconds and
-   checks it for the word "sunday" using a tiny, fast Whisper model.
-2. Once detected, **`main.py`**'s `handle_command()` takes over: it records
-   a longer clip and transcribes it with a more accurate Whisper model.
-3. **`memory.py`** checks if you've said this exact phrase before. If yes,
-   it skips straight to step 5 — no LLM call needed, instant response.
-4. If it's new, **`intent_parser.py`** sends the text to your local LLM
-   (via Ollama) and gets back ONE JSON object describing the action.
-5. **`action_executor.py`** reads that JSON and calls the matching function
-   in `actions/` (open a URL, launch an app, navigate Explorer, type text).
-6. **`text_to_speech.py`** speaks a short confirmation.
+You can add entries from the UI with the App Paths modal.
 
----
+## Notes for adding images
 
-## 7. Troubleshooting
+If you want to replace the sample screenshots later, keep the files in:
 
-| Problem | Likely fix |
-|---|---|
-| `ModuleNotFoundError` | Make sure `(venv)` is showing in your terminal — run `venv\Scripts\activate` first |
-| Nothing happens when you say "Sunday" | Check your microphone is set as the default recording device in Windows Sound settings |
-| LLM replies are slow | Try a smaller model, e.g. `phi3:mini`, and update `OLLAMA_MODEL` in `config.py` |
-| `keyboard` module needs admin rights | Some systems require running the terminal "as Administrator" for global keyboard control |
-| Chrome doesn't open | Double check `CHROME_PATH` in `config.py` matches where Chrome is actually installed |
-| Icon doesn't appear | Confirm `assets/mic_icon.png` exists and `PySide6` installed correctly |
+`client/assets/image/`
 
----
+Suggested filenames:
 
-## 8. Adding SUNDAY to Windows startup (optional)
+- `home-screen.png`
+- `wake-word-mode.png`
+- `app-paths.png`
 
-1. Press `Win + R`, type `shell:startup`, press Enter.
-2. Create a shortcut to a small `.bat` file in this folder containing:
-   ```bat
-   call venv\Scripts\activate.bat
-   pythonw main.py
-   ```
-   (`pythonw` instead of `python` runs without a visible console window.)
-3. Place that shortcut inside the startup folder. SUNDAY will now launch
-   automatically every time you log in.
+## Troubleshooting
 
----
+- If the microphone does not respond, check Windows microphone permissions and confirm the correct input device is selected.
+- If app opening fails, confirm the saved path is correct and the app exists on the machine.
+- If voice output does not play, check that audio output is not muted in Windows.
+- If the window does not launch correctly, make sure Chrome is installed and available to Eel.
 
-## 9. Future upgrade ideas
+<!-- ## License
 
-- Swap the simple Whisper-based wake-word check for **openWakeWord**, a
-  dedicated wake-word engine — more CPU-efficient for 24/7 listening.
-- Use **pywinauto** in `file_explorer.py` to steer the *same* Explorer
-  window instead of opening a new one each step.
-- Add a small settings window (PySide6) to edit shortcuts visually instead
-  of editing files directly.
+Add your preferred license here if you want to publish the project. -->
