@@ -704,7 +704,22 @@ async function wakeWordContinuousLoop() {
         return;
       }
 
-      if (status !== 'detected') continue; // Not detected, loop back
+      if (status !== 'detected') {
+        // Voice was heard but wasn't wake word — show feedback
+        const heardText = (typeof result === 'object') ? (result.heard || '') : '';
+        if (heardText) {
+          updateSpokenCommand(`"${heardText}"`);
+          updateResponse('Not the wake word. Say "Hey Sunday"…');
+          await showCooldownCountdown(COOLDOWN_SECONDS);
+          // Restore listening state for next loop iteration
+          if (state.isListening && requestId === activeListenRequestId) {
+            setListeningVisualState(true);
+            updateSpokenCommand('Listening for "Hey Sunday"...');
+            updateResponse('Say "Hey Sunday" to activate...');
+          }
+        }
+        continue;
+      }
 
       // Phase 2: Wake word detected! Acknowledgment already spoken by backend
       updateSpokenCommand('🎯 Hey Sunday detected!');

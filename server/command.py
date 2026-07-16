@@ -443,7 +443,7 @@ def listenForWakeWord():
             # of relying on this value for anything but debug logging.
             return {'status': 'detected', 'command': remaining_command}
 
-        return {'status': 'not_detected'}
+        return {'status': 'not_detected', 'heard': text}
 
     except sr.WaitTimeoutError:
         return {'status': 'not_detected'}
