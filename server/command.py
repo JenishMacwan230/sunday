@@ -6,7 +6,10 @@ import eel
 import sqlite3
 import difflib
 import os
+import re
 import pygame
+
+from server.paths import DB_PATH
 
 # ── Cooldown Duration (seconds) ───────────────────────────────
 COOLDOWN_SECONDS = 1
@@ -18,10 +21,11 @@ _state_lock = threading.Lock()
 
 # ── Database Initialization ────────────────────────────────────
 try:
-    con = sqlite3.connect('sunday.db')
+    con = sqlite3.connect(DB_PATH)
     cursor = con.cursor()
     cursor.execute('CREATE TABLE IF NOT EXISTS sys_command (id integer primary key, name VARCHAR(100), path VARCHAR(1000))')
     cursor.execute('CREATE TABLE IF NOT EXISTS web_command (id integer primary key, name VARCHAR(100), url VARCHAR(1000))')
+    cursor.execute('CREATE TABLE IF NOT EXISTS contacts (id integer primary key, name VARCHAR(100), phone VARCHAR(20))')
     con.commit()
     con.close()
 except Exception as e:
@@ -113,13 +117,14 @@ _STATIC_VOCAB = [
     'vs code', 'visual studio code', 'chrome', 'youtube', 'leetcode',
     'flipkart', 'spotify', 'notepad', 'file explorer', 'calculator',
     'settings', 'terminal', 'command prompt', 'whatsapp', 'gmail',
+    'send message', 'send whatsapp',
 ]
 
 def _load_known_vocab():
     """Pull known app/site names from the db and merge with static list."""
     vocab = list(_STATIC_VOCAB)
     try:
-        con = sqlite3.connect('sunday.db')
+        con = sqlite3.connect(DB_PATH)
         cursor = con.cursor()
         cursor.execute('SELECT name FROM sys_command')
         vocab += [r[0].lower() for r in cursor.fetchall()]
@@ -284,6 +289,9 @@ def _execute_command(query):
     elif 'on youtube' in query:
         from server.feature import PlayYoutube
         PlayYoutube(query)
+    elif re.search(r'send\s+(?:a\s+)?(?:the\s+)?message', query) or 'whatsapp' in query or 'send whatsapp' in query:
+        from server.feature import SendWhatsApp
+        SendWhatsApp(query)
     else:
         speak_text("Command not recognized. Please try again.")
         print("Command not recognized. Please try again.")
@@ -305,7 +313,7 @@ def get_cooldown_seconds():
 @eel.expose
 def add_app_path(name, path_or_url, app_type):
     try:
-        con = sqlite3.connect('sunday.db')
+        con = sqlite3.connect(DB_PATH)
         cursor = con.cursor()
         if app_type == 'system':
             cursor.execute('INSERT INTO sys_command VALUES (null, ?, ?)', (name, path_or_url))
@@ -322,7 +330,7 @@ def add_app_path(name, path_or_url, app_type):
 @eel.expose
 def get_all_app_paths():
     try:
-        con = sqlite3.connect('sunday.db')
+        con = sqlite3.connect(DB_PATH)
         cursor = con.cursor()
         cursor.execute('SELECT id, name, path FROM sys_command')
         sys_results = [{'id': r[0], 'name': r[1], 'path': r[2], 'type': 'system'} for r in cursor.fetchall()]
@@ -338,7 +346,7 @@ def get_all_app_paths():
 @eel.expose
 def delete_app_path(app_id, app_type):
     try:
-        con = sqlite3.connect('sunday.db')
+        con = sqlite3.connect(DB_PATH)
         cursor = con.cursor()
         if app_type == 'system':
             cursor.execute('DELETE FROM sys_command WHERE id = ?', (app_id,))
@@ -349,6 +357,52 @@ def delete_app_path(app_id, app_type):
         return True
     except Exception as e:
         print(f'Error deleting app path: {e}')
+        return False
+
+
+# ═══════════════════════════════════════════════════════════════
+#  CONTACTS CRUD (for WhatsApp messaging)
+# ═══════════════════════════════════════════════════════════════
+
+@eel.expose
+def add_contact(name, phone):
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cursor = con.cursor()
+        cursor.execute('INSERT INTO contacts VALUES (null, ?, ?)', (name, phone))
+        con.commit()
+        con.close()
+        return True
+    except Exception as e:
+        print(f'Error adding contact: {e}')
+        return False
+
+
+@eel.expose
+def get_all_contacts():
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cursor = con.cursor()
+        cursor.execute('SELECT id, name, phone FROM contacts')
+        results = [{'id': r[0], 'name': r[1], 'phone': r[2]} for r in cursor.fetchall()]
+        con.close()
+        return results
+    except Exception as e:
+        print(f'Error getting contacts: {e}')
+        return []
+
+
+@eel.expose
+def delete_contact(contact_id):
+    try:
+        con = sqlite3.connect(DB_PATH)
+        cursor = con.cursor()
+        cursor.execute('DELETE FROM contacts WHERE id = ?', (contact_id,))
+        con.commit()
+        con.close()
+        return True
+    except Exception as e:
+        print(f'Error deleting contact: {e}')
         return False
 
 

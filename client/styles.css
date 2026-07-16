@@ -761,6 +761,37 @@ body {
   color: var(--neon-purple);
 }
 
+.path-type-badge.whatsapp {
+  background: rgba(37, 211, 102, 0.12);
+  color: #25d366;
+  text-shadow: 0 0 8px rgba(37, 211, 102, 0.3);
+}
+
+/* ── Contacts Modal Title (green accent) ─────────────────────── */
+.modal-title.contacts-title {
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Add Contact Button (green WhatsApp theme) ───────────────── */
+.add-contact-btn {
+  background: linear-gradient(135deg, #25d366, #128c7e) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.2) !important;
+}
+
+.add-contact-btn:hover {
+  box-shadow: 0 6px 24px rgba(37, 211, 102, 0.35) !important;
+}
+
+/* Contact item hover — subtle green glow */
+.contact-item:hover {
+  border-color: rgba(37, 211, 102, 0.2) !important;
+  box-shadow: 0 0 10px rgba(37, 211, 102, 0.06);
+}
+
 .path-info {
   flex: 1;
   min-width: 0;

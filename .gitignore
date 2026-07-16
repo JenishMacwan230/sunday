@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+
+# Virtual environments
+env/
+venv/
+.venv/
+envsunday/
+
+# Build / distribution outputs
+build/
+dist/
+*.spec
+
+# App/runtime data
+sunday.db
+PyWhatKit_DB.txt
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

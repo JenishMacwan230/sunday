@@ -292,7 +292,10 @@ async function listenAndDisplayCommand() {
     if (query && query.trim()) {
       updateSpokenCommand(query.trim());
       // Build response based on command
-      if (query.includes('open')) {
+      if (query.includes('send message') || query.includes('whatsapp') || query.includes('send whatsapp')) {
+        updateResponse('Sending WhatsApp message...');
+        setCurrentTask('Sending WhatsApp message', 'completed');
+      } else if (query.includes('open')) {
         const appName = query.replace('sunday', '').replace('open', '').trim();
         updateResponse(`Opening ${appName}...`);
         setCurrentTask(`Opening ${appName}`, 'completed');
@@ -649,16 +652,17 @@ async function deleteAppPath(id, type) {
 
 // Close modal on overlay click
 document.addEventListener('click', (e) => {
-  const modal = document.getElementById('appPathsModal');
-  if (e.target === modal) {
-    closeAppPaths();
-  }
+  const appModal = document.getElementById('appPathsModal');
+  const contactsModal = document.getElementById('contactsModal');
+  if (e.target === appModal) closeAppPaths();
+  if (e.target === contactsModal) closeContacts();
 });
 
 // Close modal on Escape key
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeAppPaths();
+    closeContacts();
   }
 });
 
@@ -762,7 +766,10 @@ async function wakeWordContinuousLoop() {
 
       if (query && query.trim()) {
         updateSpokenCommand(query.trim());
-        if (query.includes('open')) {
+        if (query.includes('send message') || query.includes('whatsapp') || query.includes('send whatsapp')) {
+          updateResponse('Sending WhatsApp message...');
+          setCurrentTask('Sending WhatsApp message', 'completed');
+        } else if (query.includes('open')) {
           const appName = query.replace('sunday', '').replace('hey', '').replace('open', '').trim();
           updateResponse(`Opening ${appName}...`);
           setCurrentTask(`Opening ${appName}`, 'completed');
@@ -834,6 +841,127 @@ function setMode(newMode) {
     updateResponse('Wake word mode — say "Hey Sunday" to activate');
   }
   setStatus('idle');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CONTACTS MODAL
+// ═══════════════════════════════════════════════════════════════
+
+function openContacts() {
+  const modal = document.getElementById('contactsModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    loadContacts();
+  }
+}
+
+function closeContacts() {
+  const modal = document.getElementById('contactsModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+async function addContact() {
+  const nameInput = document.getElementById('contactName');
+  const phoneInput = document.getElementById('contactPhone');
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+
+  if (!name || !phone) {
+    if (!name) nameInput.style.borderColor = 'rgba(255, 82, 82, 0.5)';
+    if (!phone) phoneInput.style.borderColor = 'rgba(255, 82, 82, 0.5)';
+    setTimeout(() => {
+      nameInput.style.borderColor = '';
+      phoneInput.style.borderColor = '';
+    }, 1500);
+    return;
+  }
+
+  // Validate phone starts with +
+  if (!phone.startsWith('+')) {
+    phoneInput.style.borderColor = 'rgba(255, 82, 82, 0.5)';
+    phoneInput.value = '';
+    phoneInput.placeholder = 'Must start with + (e.g. +91...)';
+    setTimeout(() => {
+      phoneInput.style.borderColor = '';
+      phoneInput.placeholder = '+919876543210';
+    }, 2500);
+    return;
+  }
+
+  if (typeof eel !== 'undefined' && typeof eel.add_contact === 'function') {
+    try {
+      const result = await eel.add_contact(name, phone)();
+      if (result) {
+        nameInput.value = '';
+        phoneInput.value = '';
+        loadContacts();
+      }
+    } catch (e) {
+      console.error('Failed to add contact:', e);
+    }
+  } else {
+    console.warn('eel.add_contact is not available');
+  }
+}
+
+async function loadContacts() {
+  const listEl = document.getElementById('savedContactsList');
+  const countEl = document.getElementById('contactCount');
+
+  if (typeof eel === 'undefined' || typeof eel.get_all_contacts !== 'function') {
+    console.warn('eel.get_all_contacts is not available');
+    return;
+  }
+
+  try {
+    const contacts = await eel.get_all_contacts()();
+    countEl.textContent = contacts.length;
+
+    if (contacts.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+          </svg>
+          <p>No contacts added yet</p>
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = contacts.map((c, i) => `
+      <div class="path-item contact-item" style="animation-delay: ${i * 0.05}s">
+        <span class="path-type-badge whatsapp">WA</span>
+        <div class="path-info">
+          <div class="path-name" title="${c.name}">${c.name}</div>
+          <div class="path-value" title="${c.phone}">${c.phone}</div>
+        </div>
+        <button class="path-delete-btn" onclick="deleteContact(${c.id})" title="Delete">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('Failed to load contacts:', e);
+  }
+}
+
+async function deleteContact(id) {
+  if (typeof eel !== 'undefined' && typeof eel.delete_contact === 'function') {
+    try {
+      const result = await eel.delete_contact(id)();
+      if (result) {
+        loadContacts();
+      }
+    } catch (e) {
+      console.error('Failed to delete contact:', e);
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
